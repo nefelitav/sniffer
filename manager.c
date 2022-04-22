@@ -17,12 +17,12 @@ int main(int argc, char **argv) {
     pid_t pid_listener, pid_worker;
     pid_t * workers;
     char dir[100], filename[100], file[100];   
+    pidQueue * queue = malloc(sizeof(pidQueue));
+    queue = createPidQueue(queue);
     memset(dir, 0, 100);
     memset(filename, 0, 100);
     memset(file, 0, 100);
     memset(inbuf, 0, BUFFER_SIZE);
-    pidQueue * queue = malloc(sizeof(pidQueue));
-    queue = createPidQueue(queue);
 
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
@@ -36,7 +36,8 @@ int main(int argc, char **argv) {
     if ((pid_listener = fork()) < 0) {
         perror("Fork Failed\n");
         exit(2);
-    } else if (pid_listener == 0) { // worker writes
+        // worker writes
+    } else if (pid_listener == 0) {
         close(p[0]);
         dup2(p[1], 1); // set pipe to stdout
         close(p[1]);
@@ -44,46 +45,46 @@ int main(int argc, char **argv) {
         if (code == -1) {
             perror("Execl Failed\n");
         }
-    } else if (pid_listener > 0) { // manager reads 
+       // manager reads  
+    } else if (pid_listener > 0) { 
         printf("Watching directory %s\n", dir);
         close(p[1]);
         while(1) {
+            // get filename
             nbytes = read(p[0], inbuf, BUFFER_SIZE);
             printf("%.*s", nbytes, inbuf);
             *file = getFilename((char*)&inbuf);
             strncpy((char*)&filename, file, 100);
             printf("%s\n", filename);
+            char * fifo = strcat("/tmp/", filename);
+            int res = mkfifo(fifo, PERMS);
+            if (res < 0) {
+                perror("can't create fifo");
+            } 
 
             if (availableWorker(queue) != -1) {
-                // wake up
-                sleep(1);
+                // send signal to child to wake up
+                // sleep(1);
                 kill(availableWorker(queue), SIGCONT);
-            } else {
-                char * fifo = strcat("/tmp/", filename);
-                int res = mkfifo(fifo, PERMS);
-                if (res < 0) {
-                    perror("can't create fifo");
-                } 
+            } else { 
+                // no available workers -> create one
                 if ((pid_worker = fork()) < 0) {
                     perror("Fork Failed\n");
                     exit(2);
                 } else if (pid_worker == 0) {
-                    signal(SIGCONT, catch);
-                    pause();
-                    printf("Child process restarts\n");
+                    worker(fifo);
                 } else if (pid_worker > 0) {
                     queue = push(queue, pid_worker);
                     printQueue(queue);
+                    struct sigaction sa;
+                    memset(&sa, 0, sizeof(sa));
+                    sa.sa_handler = my_sigchld_handler;
+                    sigaction(SIGCHLD, &sa, NULL);
                 }
             }
             break;
         }
 
-        // do {
-        //     if (waitpid(pid_listener, &status, WUNTRACED | WCONTINUED) == -1) { //wait for child to finish
-        //         return -1;
-        //     }
-        // } while (!WIFEXITED(status) && !WIFSIGNALED(status));
         wait(NULL);
     }
     deletePidQueue(queue);

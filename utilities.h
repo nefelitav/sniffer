@@ -7,6 +7,7 @@ typedef struct pidNode pidNode;
 
 struct pidNode {
     pid_t data;
+    bool availabity;
     pidNode *next;
 };
 
@@ -29,4 +30,3 @@ void printQueue(pidQueue * head);
 
 char* getFilename(char* message);
 pid_t availableWorker(pidQueue* head);
-void catch(int sig);
