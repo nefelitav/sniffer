@@ -5,95 +5,100 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <regex.h>        
 
-pidQueue * createPidQueue(pidQueue * head) {
-    head->first = NULL;
-    head->last = NULL;
-    head->currSize = 0;
-    return head;
+
+void createPidQueue() {
+    queue = malloc(sizeof(pidQueue));
+    queue->first = NULL;
+    queue->last = NULL;
+    queue->currSize = 0;
 }
 
-pidNode * getFirst(pidQueue * head) {
-    return head->first;
+pidNode * getFirst() {
+    return queue->first;
 }
 
-pidNode * getLast(pidQueue * head) {
-    return head->last;
+pidNode * getLast() {
+    return queue->last;
 }
 
-unsigned int getSize(pidQueue * head) {
-    return head->currSize;
+unsigned int getSize() {
+    return queue->currSize;
 }
 
-bool isEmpty(pidQueue * head) {
-    return (head->currSize == 0);
+bool isEmpty() {
+    return (queue->currSize == 0);
 }
 
-pidQueue * push(pidQueue * head, pid_t process) {
-    if (head->last == NULL) {
+void push(pid_t process) {
+    if (queue->last == NULL) {
         // empty queue
-        head->last = (pidNode*)malloc(sizeof(pidNode));
-        head->last->data = process;
-        head->last->availabity = false;
-        head->last->next = NULL;
-        head->first = head->last;
+        queue->last = (pidNode*)malloc(sizeof(pidNode));
+        queue->last->data = process;
+        queue->last->availabity = false;
+        queue->last->next = NULL;
+        queue->first = queue->last;
     } else {
-        head->last->next = (pidNode*)malloc(sizeof(pidNode));
-        head->last = head->last->next;
+        queue->last->next = (pidNode*)malloc(sizeof(pidNode));
+        queue->last = queue->last->next;
+        queue->last->data = process;
+        queue->last->availabity = false;
+        queue->last->next = NULL;
     }
-    head->currSize++;
-    return head;
+    queue->currSize++;
 }
 
-pidNode *pop(pidQueue * head) {
-    if (head->currSize == 0) {
+pidNode *pop() {
+    if (queue->currSize == 0) {
         return NULL;
     }
-    pidNode *toReturn = head->first;
-    if (head->first == head->last) {
-        head->last = NULL;
+    pidNode *toReturn = queue->first;
+    if (queue->first == queue->last) {
+        queue->last = NULL;
     }
-    head->first = head->first->next;
-    head->currSize--;
+    queue->first = queue->first->next;
+    queue->currSize--;
     return toReturn;
 }
 
-void printQueue(pidQueue * head) {
-    pidNode *curr = head->first;
+void printQueue() {
+    pidNode *curr = queue->first;
     printf("\n############################################\n");
     while (curr != NULL) {
-        printf("%ld worker -> availability : %d\n", (long)curr->data), curr->availabity;
+        printf("%ld\n", (long)curr->data);
         curr = curr->next;
     }
     printf("############################################\n");
 }
 
-void deletePidQueue(pidQueue * head) {
-    pidNode *curr = head->first;
+void deletePidQueue() {
+    pidNode *curr = queue->first;
+    pidNode *next;
     while (curr != NULL) {
+        next = curr->next;
         free(curr);
-        curr = curr->next;
+        curr = next;
     }
-    free(head);
+    free(queue);
 }
 
-char* getFilename(char* message) {
+void getFilename(char* message, char** output) {
     char* ptr = NULL;
-    char* token = strtok_r((char*)message, " ", &ptr);
+    *output = strtok_r((char*)message, " ", &ptr);
     int i = 0;
-    while (token != NULL && i < 2) {
-        token = strtok_r(NULL, " ", &ptr);
+    while (*output != NULL && i < 2) {
+        *output = strtok_r(NULL, " ", &ptr);
         i++;
     }
-    // printf("%s\n", token);
-    return token;
+    return;
 }
 
-pid_t availableWorker(pidQueue* head) {
-    if (isEmpty(head)) {
+pid_t availableWorker() {
+    if (isEmpty(queue)) {
         return -1;
     }
-    pidNode *curr = head->first;
+    pidNode *curr = queue->first;
     while (curr != NULL) {
         if (curr->availabity == 1) {
             return curr->data;
@@ -101,29 +106,10 @@ pid_t availableWorker(pidQueue* head) {
         curr = curr->next;
     }
     return -1;
-
-    // int status;
-    // pidNode *curr = head->first;
-    // while (curr != NULL) {
-    //     pid_t result = waitpid(curr->data, &status, WNOHANG | WUNTRACED | WCONTINUED);
-    //     if (result == 0) { // child still alive 
-    //         curr = curr->next;
-    //     } else if (result == -1) {
-    //         perror("Child Failed\n");
-    //         exit(3);
-    //     } else if (result > 0) { 
-    //         if (WIFSTOPPED(status)) {
-    //             return curr->data; // child exited
-    //         } else if (WIFCONTINUED(status)) {
-    //             curr = curr->next;
-    //         }
-    //     }
-    // }
-    // return -1;
 }
 
-void pidAvailable(pid_t process, pidQueue* head) {
-    pidNode *curr = head->first;
+void pidAvailable(pid_t process) {
+    pidNode *curr = queue->first;
     while (curr != NULL) {
         if (curr->data == process) {
             curr->availabity = true;
@@ -133,46 +119,99 @@ void pidAvailable(pid_t process, pidQueue* head) {
     }
 }
 
+void pidUnavailable(pid_t process) {
+    pidNode *curr = queue->first;
+    while (curr != NULL) {
+        if (curr->data == process) {
+            curr->availabity = false;
+            return;
+        } 
+        curr = curr->next;
+    }
+}
+
+void findUrls(int infile, int outfile) {
+    // regex_t regex;
+    // char msgbuf[100];
+    // int infile, outfile, res = 0;
+    // find urls
+    // if ((infile = open(fifo, O_RDONLY)) == -1) {
+    //     perror("File open failed\n");
+    //     exit(4);
+    // }
+    // if ((outfile = open(strcat(fifo, ".out"), O_APPEND | O_CREAT)) == -1) {
+    //     perror("File open failed\n");
+    //     exit(5);
+    // }
+    // res = regcomp(&regex, "(http://)(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", 0);
+    // if (res) {
+    //     fprintf(stderr, "Could not compile regex\n");
+    //     exit(1);
+    // }
+    // res = regexec(&regex, "-------------input--------------", 0, NULL, 0);
+    // if (!res) {
+    //     // match
+    //     //write(outfile, (char *)str_write, 10); 
+    // } else if (res == REG_NOMATCH) {
+    //     // no match
+    // } else {
+    //     regerror(res, &regex, msgbuf, sizeof(msgbuf));
+    //     perror("Regex failed\n");
+    //     exit(1);
+    // }
+    // regfree(&regex);
+    // if((outfile = close(fd)) == -1) {  
+    //     perror("File close failed\n");
+    //     exit(6);
+    // }  
+    // if((outfile = close(fd2)) == -1) {  
+    //     perror("File close failed\n");
+    //     exit(7);
+    // }  
+}
 
 void worker(char* fifo) {
-    int infile, outfile;
+    // receive signal from parent to restart if stopped
+    // signal(SIGCONT, SIG_DFL); 
+    struct sigaction sa;
+    sa.sa_handler = &sigcont_handler;
+    sa.sa_flags = SA_RESTART;
+    sigaction(SIGCONT, &sa, NULL);
     while(1) {
-        if ((infile = open(fifo, O_RDONLY)) == -1) {
-            perror("File open failed\n");
-            exit(4);
+        // findUrls(infile, outfile);
+        printf("in worker\n");
+        // send signal to myself to stop
+        if (raise(SIGSTOP) == -1) {
+            perror("Raise failed\n");
+            exit(8);
         }
-        if ((outfile = open(strcat(fifo, ".out"), O_APPEND | O_CREAT)) == -1) {
-            perror("File open failed\n");
-            exit(4);
-        }
-
-        // find urls
-        if((outfile = close(fd)) == -1) {  
-            perror("File close failed\n");
-        }  
-        if((outfile = close(fd2)) == -1) {  
-            perror("File close failed\n");
-        }  
-
-        kill(getpid(), SIGSTOP);
-        signal(SIGSTOP, SIG_DFL);   
-        // receive signal from parent to restart
-        signal(SIGCONT, SIG_DFL);   
+        printf("in worker 2\n");
         pause();
-        printf("Child process restarts\n");
-        continue;
+        printf("in worker 3\n");
+        // printf("Child process restarts\n");
+    }
+}
+
+void sigcont_handler(int signum) {
+    pidUnavailable(worker_process);
+}
+
+void sigchld_handler(int signum) {
+    pid_t p;
+    printf("chld");
+    while ((p = waitpid(-1, 0, WUNTRACED)) != -1) {
+       pidAvailable(p);
     }
 }
 
 
-void my_sigchld_handler(pidQueue* head)
-{
-    pid_t p;
-    int status;
-
-    while ((p = waitpid(-1, &status, WNOHANG)) != -1)
-    {
-       pidAvailable(p, head);
+void sigint_handler(int signum) {
+    kill(pid_listener, signum);
+    pidNode *curr = queue->first;
+    while (curr != NULL) {
+        kill(curr->data, signum);
+        curr = curr->next;
     }
+    exit(0);
 }
 

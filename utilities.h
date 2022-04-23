@@ -19,14 +19,26 @@ struct pidQueue {
     unsigned int currSize;
 };
 
-pidQueue * createPidQueue(pidQueue * head);
-pidNode * getFirst(pidQueue * head);
-pidNode * getLast(pidQueue * head);
-unsigned int getSize(pidQueue * head);
-bool isEmpty(pidQueue * head);
-pidQueue * push(pidQueue * head, pid_t process);
-pidNode *pop(pidQueue * head);
-void printQueue(pidQueue * head);
+void createPidQueue();
+void deletePidQueue();
+pidNode * getFirst();
+pidNode * getLast();
+unsigned int getSize();
+bool isEmpty();
+void push(pid_t process);
+pidNode *pop();
+void printQueue();
 
-char* getFilename(char* message);
-pid_t availableWorker(pidQueue* head);
+void getFilename(char* message, char** output);
+pid_t availableWorker();
+void sigchld_handler(int signum);
+void sigint_handler(int signum);
+void sigcont_handler(int signum);
+void findUrls(int infile, int outfile);
+void worker(char* fifo);
+void pidAvailable(pid_t process);
+void pidUnavailable(pid_t process);
+
+extern pidQueue * queue;
+extern pid_t pid_listener;
+extern pid_t worker_process;
