@@ -14,6 +14,7 @@
 pidQueue * queue;
 pid_t pid_listener;
 pid_t worker_process;
+pid_t listener_process;
 int main(int argc, char **argv) {
 
     char inbuf[BUFFER_SIZE];
@@ -27,11 +28,7 @@ int main(int argc, char **argv) {
     memset(inbuf, 0, BUFFER_SIZE);
     strcpy(folder, "/tmp/");
 
-    // signal(SIGINT, sigint_handler);
-    // signal(SIGCHLD, sigchld_handler);
-    struct sigaction sa;
-    sa.sa_handler = &sigchld_handler;
-    sigaction(SIGCHLD, &sa, NULL);
+    signal(SIGINT, sigint_handler);
 
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
@@ -47,6 +44,7 @@ int main(int argc, char **argv) {
         exit(2);
         // worker writes
     } else if (pid_listener == 0) {
+        listener_process = getpid();
         close(p[0]);
         dup2(p[1], 1); // set pipe to stdout
         close(p[1]);
@@ -64,31 +62,34 @@ int main(int argc, char **argv) {
             printf("%.*s", nbytes, inbuf);
             getFilename((char*)&inbuf, &filename);
             printf("%s\n", filename);
-            // strcpy(fifo, strcat(folder, filename));
-            // int res = mkfifo(fifo, PERMS);
-            // if (res < 0) {
-            //     perror("can't create fifo");
-            // } 
+            strcpy(fifo, strcat(folder, filename));
+            int res = mkfifo(fifo, PERMS);
+            if (res < 0) {
+                perror("can't create fifo");
+            } 
             if (availableWorker() != -1) {
                 printf("available\n");
                 // send signal to child to wake up
+                printf("SIGCONT ->  %d\n", availableWorker());
                 kill(availableWorker(), SIGCONT);
             } else { 
-                worker_process = getpid();
                 // no available workers -> create one
                 if ((pid_worker = fork()) < 0) {
                     perror("Fork Failed\n");
                     exit(2);
                 } 
                 else if (pid_worker == 0) {
-                printf("worker\n");
+                    worker_process = getpid();
+                    printf("worker %d\n", worker_process);
+                    // receive signal from parent to restart if stopped
+                    signal(SIGCONT, SIG_DFL); 
                     worker(fifo);
                     exit(0); // child exits
                 } 
                 else if (pid_worker > 0) {
-                printf("parent\n");
+                    signal(SIGCHLD, sigchld_handler);
+                    printf("parent %d\n", getpid());
                     push(pid_worker);
-
                 }
             }
         }

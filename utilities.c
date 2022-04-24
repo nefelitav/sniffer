@@ -66,7 +66,7 @@ void printQueue() {
     pidNode *curr = queue->first;
     printf("\n############################################\n");
     while (curr != NULL) {
-        printf("%ld\n", (long)curr->data);
+        printf("pid = %ld, availability = %d\n", (long)curr->data, curr->availabity);
         curr = curr->next;
     }
     printf("############################################\n");
@@ -92,6 +92,20 @@ void getFilename(char* message, char** output) {
         i++;
     }
     return;
+}
+
+bool isAvailable(pid_t process) {
+    if (isEmpty(queue)) {
+        return false;
+    }
+    pidNode *curr = queue->first;
+    while (curr != NULL) {
+        if (curr->data == process) {
+            return curr->availabity;
+        } 
+        curr = curr->next;
+    }
+    return false;
 }
 
 pid_t availableWorker() {
@@ -171,47 +185,48 @@ void findUrls(int infile, int outfile) {
 }
 
 void worker(char* fifo) {
-    // receive signal from parent to restart if stopped
-    // signal(SIGCONT, SIG_DFL); 
-    struct sigaction sa;
-    sa.sa_handler = &sigcont_handler;
-    sa.sa_flags = SA_RESTART;
-    sigaction(SIGCONT, &sa, NULL);
+
     while(1) {
         // findUrls(infile, outfile);
-        printf("in worker\n");
+        printf("stopped\n");
         // send signal to myself to stop
         if (raise(SIGSTOP) == -1) {
             perror("Raise failed\n");
             exit(8);
         }
-        printf("in worker 2\n");
-        pause();
-        printf("in worker 3\n");
-        // printf("Child process restarts\n");
+        printf("restarted\n");
     }
-}
-
-void sigcont_handler(int signum) {
-    pidUnavailable(worker_process);
 }
 
 void sigchld_handler(int signum) {
     pid_t p;
-    printf("chld");
-    while ((p = waitpid(-1, 0, WUNTRACED)) != -1) {
-       pidAvailable(p);
+    if ((p = waitpid(-1, 0, WUNTRACED | WCONTINUED)) != -1) {
+        if (p == listener_process) {
+            signal(SIGCHLD, SIG_IGN);
+            return;
+        }
+        printf("child id = %d\n", p);
+    } 
+    if (isAvailable(p)) {
+        printf("catch start\n");
+        pidUnavailable(p);
+    } else {
+        printf("catch stop\n");
+        pidAvailable(p);
     }
+    printQueue();
 }
 
 
 void sigint_handler(int signum) {
+    printf("KILL\n");
     kill(pid_listener, signum);
     pidNode *curr = queue->first;
     while (curr != NULL) {
         kill(curr->data, signum);
         curr = curr->next;
     }
+
     exit(0);
 }
 

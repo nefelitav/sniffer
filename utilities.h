@@ -33,12 +33,13 @@ void getFilename(char* message, char** output);
 pid_t availableWorker();
 void sigchld_handler(int signum);
 void sigint_handler(int signum);
-void sigcont_handler(int signum);
 void findUrls(int infile, int outfile);
 void worker(char* fifo);
 void pidAvailable(pid_t process);
 void pidUnavailable(pid_t process);
+bool isAvailable(pid_t process);
 
 extern pidQueue * queue;
 extern pid_t pid_listener;
 extern pid_t worker_process;
+extern pid_t listener_process;
