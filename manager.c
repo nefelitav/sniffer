@@ -18,15 +18,15 @@ pid_t listener_process;
 int main(int argc, char **argv) {
 
     char inbuf[BUFFER_SIZE];
-    int p[2], nbytes = 0, code;
+    int p[2], nbytes = 0, code, infile;
     pid_t pid_worker;
     char dir[100], fifo[100], folder[10];   
     char* filename = NULL;
+    char mypid[100];
+
     createPidQueue();
     memset(dir, 0, 100);
-    memset(fifo, 0, 100);
     memset(inbuf, 0, BUFFER_SIZE);
-    strcpy(folder, "/tmp/");
 
     signal(SIGINT, sigint_handler);
 
@@ -60,36 +60,59 @@ int main(int argc, char **argv) {
             // get filename
             nbytes = read(p[0], inbuf, BUFFER_SIZE);
             printf("%.*s", nbytes, inbuf);
+            inbuf[strcspn(inbuf, "\n")] = 0;  // remove newline from filename
             getFilename((char*)&inbuf, &filename);
-            printf("%s\n", filename);
-            strcpy(fifo, strcat(folder, filename));
-            int res = mkfifo(fifo, PERMS);
-            if (res < 0) {
-                perror("can't create fifo");
-            } 
+            memset(fifo, 0, 100);
+            strcpy(folder, "/tmp/");
+            
+            
             if (availableWorker() != -1) {
                 printf("available\n");
+
+                sprintf(mypid, "%d", availableWorker());
+                strcpy(fifo, strcat(folder, mypid));
+
                 // send signal to child to wake up
-                printf("SIGCONT ->  %d\n", availableWorker());
                 kill(availableWorker(), SIGCONT);
+                if ((infile = open(fifo, O_WRONLY)) < 0) {
+                    perror("File open failed\n");
+                    exit(4);
+                }
+                write(infile, strcat(dir, strcat(filename, "\n")), 100);
+                if (close(infile) < 0) {  
+                    perror("File close failed\n");
+                    exit(6);
+                }  
             } else { 
                 // no available workers -> create one
                 if ((pid_worker = fork()) < 0) {
                     perror("Fork Failed\n");
                     exit(2);
-                } 
-                else if (pid_worker == 0) {
+                } else if (pid_worker == 0) {
                     worker_process = getpid();
                     printf("worker %d\n", worker_process);
                     // receive signal from parent to restart if stopped
                     signal(SIGCONT, SIG_DFL); 
-                    worker(fifo);
+                    worker();
                     exit(0); // child exits
-                } 
-                else if (pid_worker > 0) {
+                } else if (pid_worker > 0) {
                     signal(SIGCHLD, sigchld_handler);
                     printf("parent %d\n", getpid());
                     push(pid_worker);
+                    sprintf(mypid, "%d", pid_worker);
+                    strcpy(fifo, strcat(folder, mypid));
+                    if (mkfifo(fifo, PERMS) < 0) {
+                        perror("Can't create fifo\n");
+                    }
+                    if ((infile = open(fifo, O_WRONLY)) < 0) {
+                        perror("File open failed\n");
+                        exit(4);
+                    }
+                    write(infile, strcat(dir, strcat(filename, "\n")), 100);
+                    if (close(infile) < 0) {  
+                        perror("File close failed\n");
+                        exit(6);
+                    }  
                 }
             }
         }

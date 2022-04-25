@@ -144,19 +144,26 @@ void pidUnavailable(pid_t process) {
     }
 }
 
-void findUrls(int infile, int outfile) {
+void findUrls() {
     // regex_t regex;
     // char msgbuf[100];
-    // int infile, outfile, res = 0;
+    int infile, outfile, res = 0;
+    char filename[100], fifo[100], folder[10];   
+    memset(fifo, 0, 100);
+    strcpy(folder, "/tmp/");
+    char mypid[100];
+    sprintf(mypid, "%d", getpid());
+    strcpy(fifo, strcat(folder, mypid));
     // find urls
-    // if ((infile = open(fifo, O_RDONLY)) == -1) {
-    //     perror("File open failed\n");
-    //     exit(4);
-    // }
-    // if ((outfile = open(strcat(fifo, ".out"), O_APPEND | O_CREAT)) == -1) {
-    //     perror("File open failed\n");
-    //     exit(5);
-    // }
+    if ((infile = open(fifo, O_RDONLY)) == -1) {
+        perror("File open failed\n");
+        exit(4);
+    }
+    read(infile, filename, sizeof(filename));
+    if ((outfile = open(strcat(fifo, ".out"), O_CREAT | O_RDWR | O_APPEND, S_IRUSR | S_IWUSR)) == -1) {
+        perror("File open failed\n");
+        exit(5);
+    }
     // res = regcomp(&regex, "(http://)(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", 0);
     // if (res) {
     //     fprintf(stderr, "Could not compile regex\n");
@@ -174,20 +181,20 @@ void findUrls(int infile, int outfile) {
     //     exit(1);
     // }
     // regfree(&regex);
-    // if((outfile = close(fd)) == -1) {  
-    //     perror("File close failed\n");
-    //     exit(6);
-    // }  
-    // if((outfile = close(fd2)) == -1) {  
-    //     perror("File close failed\n");
-    //     exit(7);
-    // }  
+    if(close(infile) == -1) {  
+        perror("File close failed\n");
+        exit(6);
+    }  
+    if(close(outfile) == -1) {  
+        perror("File close failed\n");
+        exit(7);
+    }  
 }
 
-void worker(char* fifo) {
+void worker() {
 
     while(1) {
-        // findUrls(infile, outfile);
+        findUrls();
         printf("stopped\n");
         // send signal to myself to stop
         if (raise(SIGSTOP) == -1) {
