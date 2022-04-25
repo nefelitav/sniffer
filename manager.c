@@ -15,16 +15,19 @@ pidQueue * queue;
 pid_t pid_listener;
 pid_t worker_process;
 pid_t listener_process;
+char dir[100];
 int main(int argc, char **argv) {
 
     char inbuf[BUFFER_SIZE];
     int p[2], nbytes = 0, code, infile;
     pid_t pid_worker;
-    char dir[100], fifo[100], folder[10];   
+    char fifo[100], folder[10], path[100];   
     char* filename = NULL;
     char mypid[100];
+    int arg = 0;
 
     createPidQueue();
+    memset(path, 0, 100);
     memset(dir, 0, 100);
     memset(inbuf, 0, BUFFER_SIZE);
 
@@ -33,6 +36,7 @@ int main(int argc, char **argv) {
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
             strcpy(dir, argv[i+1]);
+            arg = i+1;
         }
     }
     if (pipe(p) < 0) {
@@ -64,7 +68,10 @@ int main(int argc, char **argv) {
             getFilename((char*)&inbuf, &filename);
             memset(fifo, 0, 100);
             strcpy(folder, "/tmp/");
-            
+            memset(path, 0, 100);
+            memset(dir, 0, 100);
+            strcpy(dir, argv[arg]);
+            strcpy(path, strcat(dir, strcat(filename, "\n")));
             
             if (availableWorker() != -1) {
                 printf("available\n");
@@ -78,7 +85,7 @@ int main(int argc, char **argv) {
                     perror("File open failed\n");
                     exit(4);
                 }
-                write(infile, strcat(dir, strcat(filename, "\n")), 100);
+                write(infile, path, 100);
                 if (close(infile) < 0) {  
                     perror("File close failed\n");
                     exit(6);
@@ -108,7 +115,7 @@ int main(int argc, char **argv) {
                         perror("File open failed\n");
                         exit(4);
                     }
-                    write(infile, strcat(dir, strcat(filename, "\n")), 100);
+                    write(infile, path, 100);
                     if (close(infile) < 0) {  
                         perror("File close failed\n");
                         exit(6);

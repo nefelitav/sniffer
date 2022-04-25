@@ -147,20 +147,55 @@ void pidUnavailable(pid_t process) {
 void findUrls() {
     // regex_t regex;
     // char msgbuf[100];
-    int infile, outfile, res = 0;
-    char filename[100], fifo[100], folder[10];   
+    int readPipe, readFile, writeFile, res = 0;
+    char filename[100], fifo[100], folder[100];   
     memset(fifo, 0, 100);
     strcpy(folder, "/tmp/");
     char mypid[100];
     sprintf(mypid, "%d", getpid());
     strcpy(fifo, strcat(folder, mypid));
-    // find urls
-    if ((infile = open(fifo, O_RDONLY)) == -1) {
+
+
+    // read filename from pipe
+    if ((readPipe = open(fifo, O_RDONLY)) == -1) {
         perror("File open failed\n");
         exit(4);
     }
-    read(infile, filename, sizeof(filename));
-    if ((outfile = open(strcat(fifo, ".out"), O_CREAT | O_RDWR | O_APPEND, S_IRUSR | S_IWUSR)) == -1) {
+    read(readPipe, filename, sizeof(filename));
+    if (close(readPipe) == -1) {  
+        perror("File close failed\n");
+        exit(6);
+    } 
+    filename[strcspn(filename, "\n")] = 0;
+    printf("Filename = -%s-\n", filename); // /mnt/c/Users/ntavoula/Desktop/tmp/x
+
+    // find urls
+    if ((readFile = open(filename, O_RDONLY)) == -1) {
+        perror("File open failed\n");
+        exit(4);
+    }
+    if (close(readFile) == -1) {  
+        perror("File close failed\n");
+        exit(6);
+    } 
+
+    char* ptr = filename;
+    char * output;
+    char * temp;
+    while ((temp = strtok_r(ptr, "/", &ptr))) {
+        if (temp == NULL) {
+            break;
+        }
+        output = temp;
+    }
+    char * newFilename = strcat(output, ".out");
+    printf("-%s-\n", newFilename);
+    memset(folder, 0, 100);
+    strcpy(folder, "/tmp/");
+    char * newFile = strcat(folder, newFilename);
+    printf("-%s-\n", newFile);
+
+    if ((writeFile = open(newFile, O_CREAT | O_RDWR | O_APPEND)) == -1) {
         perror("File open failed\n");
         exit(5);
     }
@@ -172,7 +207,7 @@ void findUrls() {
     // res = regexec(&regex, "-------------input--------------", 0, NULL, 0);
     // if (!res) {
     //     // match
-    //     //write(outfile, (char *)str_write, 10); 
+    //     //write(writeFile, (char *)str_write, 10); 
     // } else if (res == REG_NOMATCH) {
     //     // no match
     // } else {
@@ -181,11 +216,8 @@ void findUrls() {
     //     exit(1);
     // }
     // regfree(&regex);
-    if(close(infile) == -1) {  
-        perror("File close failed\n");
-        exit(6);
-    }  
-    if(close(outfile) == -1) {  
+
+    if (close(writeFile) == -1) {  
         perror("File close failed\n");
         exit(7);
     }  
