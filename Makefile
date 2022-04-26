@@ -1,5 +1,5 @@
-OBJS = manager.o utilities.o
-SOURCE = manager.c utilities.c
+OBJS = manager.o worker.o utilities.o
+SOURCE = manager.c worker.c utilities.c
 OUT = sniffer
 CC = gcc
 FLAGS = -g -c -Wall
@@ -9,6 +9,9 @@ all : $(OBJS)
 
 manager.o : manager.c
 	$(CC) $(FLAGS) manager.c
+
+worker.o : worker.c
+	$(CC) $(FLAGS) worker.c
 
 utilities.o : utilities.c
 	$(CC) $(FLAGS) utilities.c

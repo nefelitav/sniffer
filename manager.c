@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <signal.h>
 #include "utilities.h"
+#include "worker.h"
 
 #define PERMS 0666
 #define BUFFER_SIZE 4096
@@ -42,6 +43,7 @@ int main(int argc, char **argv) {
             arg = i+1;
         }
     }
+    
     if (pipe(p) < 0) {
         perror("Pipe Failed\n");
         exit(1);
