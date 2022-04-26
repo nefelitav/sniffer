@@ -144,9 +144,57 @@ void pidUnavailable(pid_t process) {
     }
 }
 
+
+void addUrl(urlList* list, char* newUrl) {
+    urlNode *curr = NULL;
+    if (alreadyIn(list, newUrl) == true) {
+        return;
+    } else {
+        curr = malloc(sizeof(urlNode));
+        curr->url = malloc(sizeof(char)*(strlen(newUrl) + 1));
+        strcpy(curr->url, newUrl);
+        curr->occurences = 1;
+        curr->next = list->head;
+        list->head = curr;
+    }
+
+}
+bool alreadyIn(urlList* list, char* newUrl) {
+    urlNode *curr = list->head;
+    urlNode *next;
+    while (curr != NULL) {
+        next = curr->next;
+        if (strcmp(curr->url, newUrl) == 0) {
+            curr->occurences++;
+            return true;
+        }
+        curr = next;
+    }
+    return false;
+}
+
+void printList(urlList* list) {
+    printf("\n############################################\n");
+    urlNode *curr = list->head;
+    while (curr != NULL) {
+        printf("%s : %d occurences\n", curr->url, curr->occurences);
+        curr = curr->next;
+    }
+    printf("\n############################################\n");
+}
+
+void deleteList(urlList* list) {
+    urlNode *curr = list->head;
+    urlNode *next;
+    while (curr != NULL) {
+        next = curr->next;
+        free(curr);
+        curr = next;
+    }
+    free(list);
+}
+
 void findUrls() {
-    // regex_t regex;
-    // char msgbuf[100];
     int readPipe, readFile, writeFile, res = 0;
     char filename[100], fifo[100], folder[100];   
     memset(fifo, 0, 100);
@@ -174,6 +222,63 @@ void findUrls() {
         perror("File open failed\n");
         exit(4);
     }
+
+
+    off_t currentPos = lseek(readFile, (size_t)0, SEEK_CUR);
+    off_t size = lseek(readFile, (size_t)0, SEEK_END);
+    lseek(readFile, currentPos, SEEK_SET); 
+    char buffer[size], text[size];
+    int len;
+    memset(text, 0, size);
+
+    while((len = read(readFile, buffer, size)) != 0) {     
+        strcpy(text, buffer);
+        break;           
+    }
+    printf("the string is = %s.\n", text); 
+    char * urlStart = text;
+    char * url;
+    regex_t regex;
+    char msgbuf[100];
+    urlList* list = malloc(sizeof(urlList));
+
+    while ((urlStart = strstr(urlStart, "http")) != NULL) {
+        url = strtok_r(urlStart, " ", &urlStart);
+        printf("the url is = %s.\n", url); 
+
+        res = regcomp(&regex, "http://(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", REG_EXTENDED|REG_NOSUB);
+        if (res) {
+            fprintf(stderr, "Could not compile regex\n");
+            exit(1);
+        }
+        res = regexec(&regex, url, 0, NULL, 0);
+        printf("res %d\n", res);
+        if (!res) {
+            // match
+            addUrl(list, url);
+        } else if (res == REG_NOMATCH) {
+            // no match
+        } else {
+            regerror(res, &regex, msgbuf, sizeof(msgbuf));
+            perror("Regex failed\n");
+            exit(1);
+        }
+        regfree(&regex);
+    } 
+
+    printList(list);
+    // urlNode *curr = list->head;
+    // while (curr != NULL) {
+
+    //     curr->url, curr->occurences
+    //     curr = curr->next;
+    // }
+
+
+
+
+    deleteList(list);
+
     if (close(readFile) == -1) {  
         perror("File close failed\n");
         exit(6);
@@ -199,23 +304,10 @@ void findUrls() {
         perror("File open failed\n");
         exit(5);
     }
-    // res = regcomp(&regex, "(http://)(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", 0);
-    // if (res) {
-    //     fprintf(stderr, "Could not compile regex\n");
-    //     exit(1);
-    // }
-    // res = regexec(&regex, "-------------input--------------", 0, NULL, 0);
-    // if (!res) {
-    //     // match
-    //     //write(writeFile, (char *)str_write, 10); 
-    // } else if (res == REG_NOMATCH) {
-    //     // no match
-    // } else {
-    //     regerror(res, &regex, msgbuf, sizeof(msgbuf));
-    //     perror("Regex failed\n");
-    //     exit(1);
-    // }
-    // regfree(&regex);
+
+    
+
+
 
     if (close(writeFile) == -1) {  
         perror("File close failed\n");
@@ -224,7 +316,6 @@ void findUrls() {
 }
 
 void worker() {
-
     while(1) {
         findUrls();
         printf("stopped\n");
@@ -262,10 +353,18 @@ void sigint_handler(int signum) {
     kill(pid_listener, signum);
     pidNode *curr = queue->first;
     while (curr != NULL) {
+        kill(curr->data, SIGCONT);
         kill(curr->data, signum);
         curr = curr->next;
     }
 
+    deletePidQueue();
     exit(0);
 }
 
+
+void pathWithSlash(char *path) {
+    if (strcmp(&path[strlen(path) - 1], "/") != 0) {
+        path[strlen(path)] = '/';
+    }
+}

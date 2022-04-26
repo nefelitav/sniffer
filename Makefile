@@ -14,10 +14,7 @@ utilities.o : utilities.c
 	$(CC) $(FLAGS) utilities.c
 
 valgrind: $(OUT)
-	valgrind --leak-check=full --show-leak-kinds=all  --track-origins=yes ./$(OUT)
-
-helgrind: $(OUT)
-	valgrind --tool=helgrind ./$(OUT) -p /mnt/c/Users/ntavoula/Desktop/
+	valgrind --leak-check=full --show-leak-kinds=all  --track-origins=yes ./$(OUT) -p /mnt/c/Users/ntavoula/Desktop/tmp/
 
 clean :
 	rm -f $(OBJS) $(OUT)

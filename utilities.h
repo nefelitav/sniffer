@@ -29,6 +29,25 @@ void push(pid_t process);
 pidNode *pop();
 void printQueue();
 
+typedef struct urlNode urlNode;
+
+struct urlNode {
+    char* url;
+    int occurences;
+    urlNode *next;
+};
+
+typedef struct urlList urlList;
+
+struct urlList {
+    urlNode *head;
+};
+
+void addUrl(urlList* list, char* newUrl);
+bool alreadyIn(urlList* list, char* newUrl);
+void deleteList(urlList* list);
+void printList(urlList* list);
+
 void getFilename(char* message, char** output);
 pid_t availableWorker();
 void sigchld_handler(int signum);
@@ -38,6 +57,8 @@ void worker();
 void pidAvailable(pid_t process);
 void pidUnavailable(pid_t process);
 bool isAvailable(pid_t process);
+void pathWithSlash(char *givenPath);
+
 
 extern pidQueue * queue;
 extern pid_t pid_listener;

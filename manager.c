@@ -16,6 +16,7 @@ pid_t pid_listener;
 pid_t worker_process;
 pid_t listener_process;
 char dir[100];
+
 int main(int argc, char **argv) {
 
     char inbuf[BUFFER_SIZE];
@@ -33,9 +34,11 @@ int main(int argc, char **argv) {
 
     signal(SIGINT, sigint_handler);
 
+
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
             strcpy(dir, argv[i+1]);
+            pathWithSlash(dir);
             arg = i+1;
         }
     }
@@ -71,6 +74,7 @@ int main(int argc, char **argv) {
             memset(path, 0, 100);
             memset(dir, 0, 100);
             strcpy(dir, argv[arg]);
+            pathWithSlash(dir);
             strcpy(path, strcat(dir, strcat(filename, "\n")));
             
             if (availableWorker() != -1) {
