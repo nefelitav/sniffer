@@ -6,11 +6,11 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <signal.h>
-#include "utilities.h"
-#include "worker.h"
+#include "../include/utilities.h"
+#include "../include/worker.h"
 
 #define PERMS 0666
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 1000
 
 pidQueue * queue;
 pid_t pid_listener;
@@ -20,21 +20,18 @@ char dir[100];
 
 int main(int argc, char **argv) {
 
-    char inbuf[BUFFER_SIZE];
-    int p[2], nbytes = 0, code, infile;
+    int p[2], nbytes = 0, code, infile, arg = 0;
     pid_t pid_worker;
-    char fifo[100], folder[10], path[100];   
+    char inbuf[BUFFER_SIZE], fifo[100], folder[100], path[100], mypid[100];   
     char* filename = NULL;
-    char mypid[100];
-    int arg = 0;
 
     createPidQueue();
+
     memset(path, 0, 100);
     memset(dir, 0, 100);
     memset(inbuf, 0, BUFFER_SIZE);
 
     signal(SIGINT, sigint_handler);
-
 
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {

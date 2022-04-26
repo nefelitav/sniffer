@@ -1,5 +1,4 @@
 OBJS = manager.o worker.o utilities.o
-SOURCE = manager.c worker.c utilities.c
 OUT = sniffer
 CC = gcc
 FLAGS = -g -c -Wall
@@ -7,14 +6,14 @@ FLAGS = -g -c -Wall
 all : $(OBJS)
 	$(CC) -g -Wall -o $(OUT) $(OBJS)
 
-manager.o : manager.c
-	$(CC) $(FLAGS) manager.c
+manager.o : ./src/manager.c
+	$(CC) $(FLAGS) ./src/manager.c
 
-worker.o : worker.c
-	$(CC) $(FLAGS) worker.c
+worker.o : ./src/worker.c
+	$(CC) $(FLAGS) ./src/worker.c
 
-utilities.o : utilities.c
-	$(CC) $(FLAGS) utilities.c
+utilities.o : ./src/utilities.c
+	$(CC) $(FLAGS) ./src/utilities.c
 
 valgrind: $(OUT)
 	valgrind --leak-check=full --show-leak-kinds=all  --track-origins=yes ./$(OUT) -p /mnt/c/Users/ntavoula/Desktop/tmp/

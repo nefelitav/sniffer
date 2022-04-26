@@ -1,5 +1,3 @@
-#include "worker.h"
-#include "utilities.h"
 #include <stdlib.h> 
 #include <string.h> 
 #include <fcntl.h> 
@@ -7,6 +5,8 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <regex.h>        
+#include "../include/worker.h"
+#include "../include/utilities.h"
 
 /*
     Contains:
@@ -114,6 +114,13 @@ void findUrls() {
         strcpy(text, buffer);
         break;           
     }
+
+    if (close(readFile) == -1) {  
+        perror("File close failed\n");
+        exit(6);
+    } 
+
+
     printf("the string is = %s.\n", text); 
     char * urlStart = text;
     char * url;
@@ -125,7 +132,7 @@ void findUrls() {
         url = strtok_r(urlStart, " ", &urlStart);
         printf("the url is = %s.\n", url); 
 
-        res = regcomp(&regex, "http://(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", REG_EXTENDED|REG_NOSUB);
+        res = regcomp(&regex, "http://(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", REG_EXTENDED);
         if (res) {
             fprintf(stderr, "Could not compile regex\n");
             exit(1);
@@ -145,23 +152,8 @@ void findUrls() {
         regfree(&regex);
     } 
 
+
     printList(list);
-    // urlNode *curr = list->head;
-    // while (curr != NULL) {
-
-    //     curr->url, curr->occurences
-    //     curr = curr->next;
-    // }
-
-
-
-
-    deleteList(list);
-
-    if (close(readFile) == -1) {  
-        perror("File close failed\n");
-        exit(6);
-    } 
 
     char* ptr = filename;
     char * output;
@@ -184,6 +176,19 @@ void findUrls() {
         exit(5);
     }
 
+    char occurence_str[10];
+    urlNode *curr = list->head;
+    while (curr != NULL) {
+        sprintf(occurence_str, "%d", curr->occurences);
+        write(writeFile, strcat(strcat(curr->url, " "), occurence_str), 100);
+        curr = curr->next;
+    }
+
+    deleteList(list);
+
+
+
+    
     
 
 

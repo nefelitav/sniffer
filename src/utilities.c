@@ -1,12 +1,12 @@
-#include "utilities.h"
-#include "worker.h"
 #include <stdlib.h> 
 #include <string.h> 
 #include <fcntl.h> 
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-#include <regex.h>        
+#include <regex.h>       
+#include "../include/utilities.h"
+#include "../include/worker.h" 
 
 /*
     Contains:
