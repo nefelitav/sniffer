@@ -187,6 +187,7 @@ void sigint_handler(int signum) {
         curr = curr->next;
     }
     // free resources and exit
+    free(dir);
     deletePidQueue();
     exit(0);
 }

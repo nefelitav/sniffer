@@ -16,20 +16,18 @@ pidQueue * queue;
 pid_t pid_listener;
 pid_t worker_process;
 pid_t listener_process;
-char dir[100];
+char* dir;
 
 int main(int argc, char **argv) {
 
     int p[2], nbytes = 0, infile, arg = 0;
     pid_t pid_worker;
-    char inbuf[BUFFER_SIZE], fifo[100], folder[100], path[100], mypid[100];   
-    char* filename = NULL;
+    char inbuf[BUFFER_SIZE], folder[10], mypid[10];   
+    char* filename = NULL, * fifo = NULL, *path = NULL;
 
     // create workers queue
     createPidQueue(); 
 
-    memset(path, 0, 100);
-    memset(dir, 0, 100);
     memset(inbuf, 0, BUFFER_SIZE);
 
     // stop when i receive ctrl+c
@@ -38,6 +36,8 @@ int main(int argc, char **argv) {
     // get path and add slash if it isnt there
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
+            dir = malloc(sizeof(char) * (strlen(argv[i+1]) + 1));
+            memset(dir, 0, strlen(argv[i+1]) + 1);
             strcpy(dir, argv[i+1]);
             pathWithSlash(dir);
             arg = i+1;
@@ -72,25 +72,36 @@ int main(int argc, char **argv) {
         while(1) {
             // get filename
             nbytes = read(p[0], inbuf, BUFFER_SIZE);
+            if (nbytes == -1) {
+                perror("Failed to read from pipe");
+                exit(1);
+            }
             printf("%.*s", nbytes, inbuf);
             // remove newline from filename
             inbuf[strcspn(inbuf, "\n")] = 0;  
             // clean input
             getFilename((char*)&inbuf, &filename); 
-            memset(fifo, 0, 100);
+            memset(folder, 0, 10);
             strcpy(folder, "/tmp/");
-            memset(path, 0, 100);
-            memset(dir, 0, 100);
+            
+            memset(dir, 0, strlen(argv[arg]) + 2);
             strcpy(dir, argv[arg]);
             pathWithSlash(dir);
-            strcpy(path, strcat(dir, strcat(filename, "\n")));
+            strcat(dir, strcat(filename, "\n"));
+
+            path = malloc(sizeof(char)*(strlen(dir) + 1));
+            memset(path, 0, strlen(dir) + 1);
+           
+            strcpy(path, dir);
             
             // there is some available worker
             if (availableWorker() != -1) {
                 printf("available\n");
-
                 sprintf(mypid, "%d", availableWorker());
-                strcpy(fifo, strcat(folder, mypid));
+                strcat(folder, mypid);
+                fifo = malloc(sizeof(char)*(strlen(folder) + 1));
+                memset(fifo, 0, strlen(folder) + 1);
+                strcpy(fifo, folder);
 
                 // send signal to child to wake up
                 if (kill(availableWorker(), SIGCONT) == -1) {
@@ -101,11 +112,13 @@ int main(int argc, char **argv) {
                     perror("Failed to open named pipe\n");
                     exit(1);
                 }
+                free(fifo);
                 // write file path in named pipe
-                if (write(infile, path, 100) < 0) {
+                if (write(infile, path, strlen(path) + 1) < 0) {
                     perror("Failed to write in named pipe\n");
                     exit(1);
                 }
+                free(path);
                 if (close(infile) < 0) {  
                     perror("Failed to close named pipe\n");
                     exit(1);
@@ -131,7 +144,10 @@ int main(int argc, char **argv) {
                     // push worker to the queue
                     push(pid_worker);
                     sprintf(mypid, "%d", pid_worker);
-                    strcpy(fifo, strcat(folder, mypid));
+                    strcat(folder, mypid);
+                    fifo = malloc(sizeof(char)*(strlen(folder) + 1));
+                    memset(fifo, 0, strlen(folder) + 1);
+                    strcpy(fifo, folder);
                     // create named pipe
                     if (mkfifo(fifo, PERMS) < 0) {
                         perror("Can't create fifo\n");
@@ -140,11 +156,13 @@ int main(int argc, char **argv) {
                         perror("Failed to open named pipe\n");
                         exit(1);
                     }
+                    free(fifo);
                     // write file path in named pipe
-                    if (write(infile, path, 100) < 0) {
+                    if (write(infile, path, strlen(path) + 1) < 0) {
                         perror("Failed to write in named pipe\n");
                         exit(1);
                     }
+                    free(path);
                     if (close(infile) < 0) {  
                         perror("Failed to close named pipe\n");
                         exit(1);

@@ -8,6 +8,8 @@
 #include "../include/worker.h"
 #include "../include/utilities.h"
 
+#define PERMS 0666
+
 /*
     Contains:
     - Worker funcionality
@@ -77,13 +79,13 @@ void deleteList(urlList* list) {
 
 void findUrls() {
     int readPipe, readFile, writeFile, res = 0;
-    char filename[100], fifo[100], folder[100];   
-    memset(fifo, 0, 100);
+    char filename[100], *fifo, folder[10], mypid[100];   
+    fifo = malloc(sizeof(char) * (strlen(strcat(folder, mypid)) + 1));
+    memset(fifo, 0, strlen(strcat(folder, mypid)) + 1);
     strcpy(folder, "/tmp/");
-    char mypid[100];
     sprintf(mypid, "%d", getpid());
     strcpy(fifo, strcat(folder, mypid));
-
+    sleep(1);
     // read filename from pipe
     if ((readPipe = open(fifo, O_RDONLY)) == -1) {
         perror("Failed to open named pipe\n");
@@ -97,7 +99,8 @@ void findUrls() {
         perror("Failed to close named pipe\n");
         exit(1);
     } 
-
+    free(fifo);
+    
     filename[strcspn(filename, "\n")] = 0;
     printf("Filename = -%s-\n", filename); 
 
@@ -130,7 +133,7 @@ void findUrls() {
         exit(1);
     } 
 
-
+    text[strcspn(text, "\n")] = 0;  
     printf("the string is = %s.\n", text); 
     char * urlStart = text;
     char * url;
@@ -141,7 +144,6 @@ void findUrls() {
     // if there is an http in file
     while ((urlStart = strstr(urlStart, "http")) != NULL) {
         url = strtok_r(urlStart, " ", &urlStart);
-        printf("the url is = %s.\n", url); 
 
         // check if it is a valid url
         if (regcomp(&regex, "http://(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", REG_EXTENDED)) {
@@ -153,6 +155,19 @@ void findUrls() {
         printf("res %d\n", res);
         if (!res) {
             // match -> add url to list
+            char* wwwPtr = strstr(url, "www.");
+            char* httpPtr = strstr(url, "http://");
+            if (wwwPtr != NULL) {
+                url = (char*)(wwwPtr + 4);
+            } else {
+                url = (char*)(httpPtr + 7);
+            }
+            url = strtok_r(url, ":", &url);
+            url = strtok_r(url, "#", &url);
+            url = strtok_r(url, "?", &url);
+            url = strtok_r(url, "/", &url);
+            
+            printf("the url is = %s.\n", url); 
             addUrl(list, url);
         } else if (res == REG_NOMATCH) {
             // no match
@@ -178,13 +193,13 @@ void findUrls() {
     }
     char * newFilename = strcat(output, ".out");
     printf("-%s-\n", newFilename);
-    memset(folder, 0, 100);
+    memset(folder, 0, 10);
     strcpy(folder, "/tmp/");
     char * newFile = strcat(folder, newFilename);
     printf("-%s-\n", newFile);
 
     // create .out file
-    if ((writeFile = open(newFile, O_CREAT | O_RDWR | O_APPEND)) == -1) {
+    if ((writeFile = open(newFile, O_CREAT | O_RDWR | O_APPEND, PERMS)) == -1) {
         perror("Failed to open .out file\n");
         exit(1);
     }
@@ -194,7 +209,10 @@ void findUrls() {
     // for every url -> write to .out file
     while (curr != NULL) {
         sprintf(occurence_str, "%d", curr->occurences);
-        write(writeFile, strcat(strcat(curr->url, " "), occurence_str), 100);
+        strcat(strcat(curr->url, " "), strcat(occurence_str, "\n"));
+        curr->url[strcspn(curr->url, "\n")] = 0;  
+        write(writeFile, curr->url, 1000);
+        printf("-%s-\n", curr->url);
         curr = curr->next;
     }
 
