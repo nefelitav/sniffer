@@ -60,5 +60,4 @@ extern pid_t pid_listener;
 extern pid_t worker_process;
 extern pid_t listener_process;
 extern char* dir;
-
 #endif

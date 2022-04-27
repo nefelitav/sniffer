@@ -80,8 +80,8 @@ void deleteList(urlList* list) {
 void findUrls() {
     int readPipe, readFile, writeFile, res = 0;
     char filename[100], *fifo, folder[10], mypid[100];   
-    fifo = malloc(sizeof(char) * (strlen(strcat(folder, mypid)) + 1));
-    memset(fifo, 0, strlen(strcat(folder, mypid)) + 1);
+    fifo = malloc(sizeof(char) * (110 + 1));
+    memset(fifo, 0, 110 + 1);
     strcpy(folder, "/tmp/");
     sprintf(mypid, "%d", getpid());
     strcpy(fifo, strcat(folder, mypid));
@@ -192,14 +192,21 @@ void findUrls() {
         output = temp;
     }
     char * newFilename = strcat(output, ".out");
+
+
+
+
+
     printf("-%s-\n", newFilename);
     memset(folder, 0, 10);
     strcpy(folder, "/tmp/");
     char * newFile = strcat(folder, newFilename);
     printf("-%s-\n", newFile);
 
+
+
     // create .out file
-    if ((writeFile = open(newFile, O_CREAT | O_RDWR | O_APPEND, PERMS)) == -1) {
+    if ((writeFile = open(newFile, O_CREAT | O_RDWR, PERMS)) == -1) {
         perror("Failed to open .out file\n");
         exit(1);
     }
@@ -210,8 +217,10 @@ void findUrls() {
     while (curr != NULL) {
         sprintf(occurence_str, "%d", curr->occurences);
         strcat(strcat(curr->url, " "), strcat(occurence_str, "\n"));
-        curr->url[strcspn(curr->url, "\n")] = 0;  
-        write(writeFile, curr->url, 1000);
+        if (write(writeFile, curr->url, strlen(curr->url)) == -1) {
+            perror("Failed to write to .out file\n");
+            exit(1);
+        }
         printf("-%s-\n", curr->url);
         curr = curr->next;
     }

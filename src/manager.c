@@ -49,6 +49,9 @@ int main(int argc, char **argv) {
         perror("Failed to open pipe\n");
         exit(1);
     }
+
+
+
     // create listener
     if ((pid_listener = fork()) < 0) {
         perror("Listener fork failed\n");
