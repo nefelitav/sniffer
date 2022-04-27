@@ -82,6 +82,7 @@ void deletePidQueue() {
     free(queue);
 }
 
+// check if process is stopped
 bool isAvailable(pid_t process) {
     if (isEmpty(queue)) {
         return false;
@@ -96,6 +97,7 @@ bool isAvailable(pid_t process) {
     return false;
 }
 
+// get an available worker, if exists
 pid_t availableWorker() {
     if (isEmpty(queue)) {
         return -1;
@@ -110,6 +112,7 @@ pid_t availableWorker() {
     return -1;
 }
 
+// change status of worker to available
 void pidAvailable(pid_t process) {
     pidNode *curr = queue->first;
     while (curr != NULL) {
@@ -121,6 +124,7 @@ void pidAvailable(pid_t process) {
     }
 }
 
+// change status of worker to unavailable
 void pidUnavailable(pid_t process) {
     pidNode *curr = queue->first;
     while (curr != NULL) {
@@ -138,17 +142,24 @@ void pidUnavailable(pid_t process) {
 
 void sigchld_handler(int signum) {
     pid_t p;
+    // wait for children that were stopped or continued
     if ((p = waitpid(-1, 0, WUNTRACED | WCONTINUED)) != -1) {
+        // ignore this for listener
         if (p == listener_process) {
             signal(SIGCHLD, SIG_IGN);
             return;
         }
         printf("child id = %d\n", p);
-    } 
+    } else {
+        perror("Failed to wait\n");
+        exit(1);
+    }
+    // continue -> become unavailable
     if (isAvailable(p)) {
         printf("catch start\n");
         pidUnavailable(p);
     } else {
+    // stop -> become available
         printf("catch stop\n");
         pidAvailable(p);
     }
@@ -158,14 +169,24 @@ void sigchld_handler(int signum) {
 
 void sigint_handler(int signum) {
     printf("KILL\n");
-    kill(pid_listener, signum);
+    // kill everyone
+    if (kill(pid_listener, signum) == -1) {
+        perror("Failed to kill listener\n");
+        exit(1);
+    }
     pidNode *curr = queue->first;
     while (curr != NULL) {
-        kill(curr->data, SIGCONT);
-        kill(curr->data, signum);
+        if (kill(curr->data, SIGCONT) == -1) {
+            perror("Failed to continue worker\n");
+            exit(1);
+        }
+        if (kill(curr->data, signum) == -1) {
+            perror("Failed to kill worker\n");
+            exit(1);
+        }
         curr = curr->next;
     }
-
+    // free resources and exit
     deletePidQueue();
     exit(0);
 }
@@ -174,7 +195,7 @@ void sigint_handler(int signum) {
 //    Useful functions
 ///////////////////////////////////////
 
-
+// get filename out of listener's message
 void getFilename(char* message, char** output) {
     char* ptr = NULL;
     *output = strtok_r((char*)message, " ", &ptr);
@@ -186,6 +207,7 @@ void getFilename(char* message, char** output) {
     return;
 }
 
+// add slash in path if it isnt there
 void pathWithSlash(char *path) {
     if (strcmp(&path[strlen(path) - 1], "/") != 0) {
         path[strlen(path)] = '/';
