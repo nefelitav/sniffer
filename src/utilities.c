@@ -150,10 +150,7 @@ void sigchld_handler(int signum) {
             return;
         }
         printf("child id = %d\n", p);
-    } else {
-        perror("Failed to wait\n");
-        exit(1);
-    }
+    } 
     // continue -> become unavailable
     if (isAvailable(p)) {
         printf("catch start\n");
@@ -169,10 +166,20 @@ void sigchld_handler(int signum) {
 
 void sigint_handler(int signum) {
     printf("KILL\n");
+    int status = 0;
     // kill everyone
     if (kill(pid_listener, signum) == -1) {
         perror("Failed to kill listener\n");
         exit(1);
+    }
+
+    if (waitpid(pid_listener, &status, WNOHANG) == -1) {
+        if (!WIFSIGNALED(status)) {
+            waitpid(pid_listener, &status, 0);
+        } else {
+            perror("Error waiting listener\n");
+            exit(1);
+        }
     }
     pidNode *curr = queue->first;
     while (curr != NULL) {
@@ -182,6 +189,10 @@ void sigint_handler(int signum) {
         }
         if (kill(curr->data, signum) == -1) {
             perror("Failed to kill worker\n");
+            exit(1);
+        }
+        if (waitpid(curr->data, &status, 0) == -1) {
+            perror("Error waiting\n");
             exit(1);
         }
         curr = curr->next;

@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
     int p[2], nbytes = 0, infile, arg = 0;
     pid_t pid_worker;
     char inbuf[BUFFER_SIZE], folder[10], mypid[10];   
-    char* filename = NULL, * fifo = NULL, *path = NULL;
+    char* filename = NULL, * fifo = NULL;
 
     // create workers queue
     createPidQueue(); 
@@ -36,8 +36,8 @@ int main(int argc, char **argv) {
     // get path and add slash if it isnt there
     for (int i = 0; i < argc; i++) {
         if (strcmp(argv[i], "-p") == 0) {
-            dir = malloc(sizeof(char) * (strlen(argv[i+1]) + 1));
-            memset(dir, 0, strlen(argv[i+1]) + 1);
+            dir = malloc(sizeof(char) * (strlen(argv[i+1]) + 2));
+            memset(dir, 0, strlen(argv[i+1]) + 2);
             strcpy(dir, argv[i+1]);
             pathWithSlash(dir);
             arg = i+1;
@@ -49,8 +49,6 @@ int main(int argc, char **argv) {
         perror("Failed to open pipe\n");
         exit(1);
     }
-
-
 
     // create listener
     if ((pid_listener = fork()) < 0) {
@@ -82,21 +80,16 @@ int main(int argc, char **argv) {
             printf("%.*s", nbytes, inbuf);
             // remove newline from filename
             inbuf[strcspn(inbuf, "\n")] = 0;  
-            // clean input
+            // get filename from listener's message
             getFilename((char*)&inbuf, &filename); 
             memset(folder, 0, 10);
-            strcpy(folder, "/tmp/");
+            strcpy(folder, "/tmp/"); 
             
-            memset(dir, 0, strlen(argv[arg]) + 2);
+            memset(dir, 0, strlen(argv[arg]) + 1);
             strcpy(dir, argv[arg]);
             pathWithSlash(dir);
-            strcat(dir, strcat(filename, "\n"));
+            strcat(dir, filename);
 
-            path = malloc(sizeof(char)*(strlen(dir) + 1));
-            memset(path, 0, strlen(dir) + 1);
-           
-            strcpy(path, dir);
-            
             // there is some available worker
             if (availableWorker() != -1) {
                 printf("available\n");
@@ -117,11 +110,10 @@ int main(int argc, char **argv) {
                 }
                 free(fifo);
                 // write file path in named pipe
-                if (write(infile, path, strlen(path) + 1) < 0) {
+                if (write(infile, dir, strlen(dir) + 1) < 0) {
                     perror("Failed to write in named pipe\n");
                     exit(1);
                 }
-                free(path);
                 if (close(infile) < 0) {  
                     perror("Failed to close named pipe\n");
                     exit(1);
@@ -161,11 +153,10 @@ int main(int argc, char **argv) {
                     }
                     free(fifo);
                     // write file path in named pipe
-                    if (write(infile, path, strlen(path) + 1) < 0) {
+                    if (write(infile, dir, strlen(dir) + 1) < 0) {
                         perror("Failed to write in named pipe\n");
                         exit(1);
                     }
-                    free(path);
                     if (close(infile) < 0) {  
                         perror("Failed to close named pipe\n");
                         exit(1);

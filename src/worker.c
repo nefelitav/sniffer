@@ -53,7 +53,8 @@ bool alreadyIn(urlList* list, char* newUrl) {
 
 void printList(urlList* list) {
     printf("\n############################################\n");
-    urlNode *curr = list->head;
+    urlNode *curr;
+    curr = list->head;
     while (curr != NULL) {
         printf("%s : %d occurences\n", curr->url, curr->occurences);
         curr = curr->next;
@@ -62,8 +63,9 @@ void printList(urlList* list) {
 }
 
 void deleteList(urlList* list) {
-    urlNode *curr = list->head;
-    urlNode *next;
+    urlNode *curr = NULL;
+    curr = list->head;
+    urlNode *next = NULL;
     while (curr != NULL) {
         next = curr->next;
         free(curr);
@@ -85,7 +87,7 @@ void findUrls() {
     strcpy(folder, "/tmp/");
     sprintf(mypid, "%d", getpid());
     strcpy(fifo, strcat(folder, mypid));
-    sleep(1);
+    sleep(0.5);
     // read filename from pipe
     if ((readPipe = open(fifo, O_RDONLY)) == -1) {
         perror("Failed to open named pipe\n");
@@ -140,6 +142,7 @@ void findUrls() {
     regex_t regex;
     char msgbuf[100];
     urlList* list = malloc(sizeof(urlList));
+    memset(list, 0, sizeof(urlList));
 
     // if there is an http in file
     while ((urlStart = strstr(urlStart, "http")) != NULL) {
