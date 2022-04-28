@@ -14,11 +14,12 @@
 
 pidQueue * queue;
 pid_t pid_listener;
+pid_t pid_manager;
 pid_t worker_process;
-pid_t listener_process;
 char* dir;
 
 int main(int argc, char **argv) {
+    pid_manager = getpid();
 
     int p[2], nbytes = 0, infile, arg = 0;
     pid_t pid_worker;
@@ -59,7 +60,6 @@ int main(int argc, char **argv) {
         exit(1);
     // listener writes
     } else if (pid_listener == 0) {
-        listener_process = getpid();
         close(p[0]);
         // set pipe to stdout
         dup2(p[1], 1); 

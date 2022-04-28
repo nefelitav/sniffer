@@ -177,6 +177,9 @@ void sigchld_handler(int signum) {
 
 
 void sigint_handler(int signum) {
+    if (getpid() != pid_manager) {
+        return;
+    }
     printf("Kill everyone %d\n", getpid());
     int status = 0;
     // kill everyone
