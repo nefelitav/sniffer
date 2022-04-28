@@ -197,15 +197,11 @@ void findUrls() {
     char * newFilename = strcat(output, ".out");
 
 
-
-
-
     printf("-%s-\n", newFilename);
     memset(folder, 0, 10);
     strcpy(folder, "/tmp/");
     char * newFile = strcat(folder, newFilename);
     printf("-%s-\n", newFile);
-
 
 
     // create .out file
@@ -229,7 +225,6 @@ void findUrls() {
     }
 
     deleteList(list);
-
 
 
     if (close(writeFile) == -1) {  

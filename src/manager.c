@@ -43,6 +43,11 @@ int main(int argc, char **argv) {
             arg = i+1;
         }
     }
+    if (argc == 1) {
+        dir = malloc(sizeof(char) * (strlen("./") + 2));
+        memset(dir, 0, strlen("./") + 2);
+        strcpy(dir, "./");
+    }
     
     // create pipe
     if (pipe(p) < 0) {
@@ -84,10 +89,16 @@ int main(int argc, char **argv) {
             getFilename((char*)&inbuf, &filename); 
             memset(folder, 0, 10);
             strcpy(folder, "/tmp/"); 
-            
-            memset(dir, 0, strlen(argv[arg]) + 1);
-            strcpy(dir, argv[arg]);
-            pathWithSlash(dir);
+
+            if (argc == 1) {
+                memset(dir, 0, strlen("./") + 1);
+                strcpy(dir, "./");
+            } else {
+                memset(dir, 0, strlen(argv[arg]) + 1);
+                strcpy(dir, argv[arg]);
+                pathWithSlash(dir);
+            }
+
             strcat(dir, filename);
 
             // there is some available worker

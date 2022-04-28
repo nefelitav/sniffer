@@ -16,7 +16,7 @@ utilities.o : ./src/utilities.c
 	$(CC) $(FLAGS) ./src/utilities.c
 
 valgrind: $(OUT)
-	valgrind --leak-check=full --show-leak-kinds=all  --track-origins=yes ./$(OUT) -p /mnt/c/Users/ntavoula/Desktop/tmp/
+	valgrind --leak-check=full --show-leak-kinds=all  --track-origins=yes ./sniffer
 
 clean :
 	rm -f $(OBJS) $(OUT)
