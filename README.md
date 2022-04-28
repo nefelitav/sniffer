@@ -6,7 +6,7 @@ This program consists of 3 entities:
 
 - Listener : informs manager of newly created files in a specific folder, using exec and the linux command inotifywait, which is found in the /usr/bin directory. The arguments used for this command are -m, for monitoring and -e create, so that it focuses on creation of files.
 
-- Workers : They read the name of the file that they are going to process from the named pipe, then they open that file and search for urls, using low level i/o. Using lseek they find the size of the file and using read, strstr and strtok_r they find some possible urls, which are then filtered with the regex library for validation. If a url is valid, then the worker gets the location out of it, removing extra data, and then it is added in a linked list which stores each location's number of occurences in this file. Then, traversing this list, the worker writes all the data in a new .out file, which is stored also in the /tmp directory. The worker's job is done and so it sends a SIGSTOP to itself and waits to continue whenever the manager tells them to do so.
+- Workers : They read the name of the file that they are going to process from the named pipe, then they open that file and search for urls, using low level i/o. Using lseek they find the size of the file and using read, strstr and strtok_r they find some possible urls, which are then filtered with the regex library for validation. If a url is valid, then the worker gets the location out of it, removing extra data, and then it is added in a linked list which stores each location's number of occurences in this file. Then, traversing this list, the worker writes all the data in a new .out file, which is stored also in the /tmp directory and which is removed on make/make clean/make valgrind. The worker's job is done and so it sends a SIGSTOP to itself and waits to continue whenever the manager tells them to do so.
 
 File structure:
 
@@ -14,7 +14,7 @@ File structure:
 - worker.c : contains the worker functionality, as well as the urlsList struct methods, which are used by workers.
 - utilities.c : contains some useful functions (e.g for path processing), signal handlers and the pidsQueue struct methods.
 
-Finally, I created a bash script to search for the occurence of some given TLD in all the .out files that were created.
+Finally, I created a bash script to search for the occurence of some given TLD in all the .out files that were created in the /tmp directory.
 
 All in all, in this project I familiarized with the following concepts:
 

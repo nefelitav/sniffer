@@ -12,7 +12,6 @@ do
             url=$(echo "$line" | awk '{print $1;}')
             # get second word of line -> occurences
             occurences=$(echo "$line" | awk '{print $2;}')
-            echo $occurences
             # tokenize by . , get the last token and compare to the given TLD
             if [ ${url##*.} = $arg ] 
             then

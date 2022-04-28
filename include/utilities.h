@@ -36,6 +36,8 @@ pid_t availableWorker();
 void pidAvailable(pid_t process);
 void pidUnavailable(pid_t process);
 bool isAvailable(pid_t process);
+bool isWorker(pid_t process);
+
 
 ////////////////////////////////////////
 //    Signal handlers

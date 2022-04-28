@@ -136,20 +136,32 @@ void pidUnavailable(pid_t process) {
     }
 }
 
+bool isWorker(pid_t process) {
+    pidNode *curr = queue->first;
+    while (curr != NULL) {
+        if (curr->data == process) {
+            return true;
+        } 
+        curr = curr->next;
+    }
+    return false;
+}
+
 ////////////////////////////////////////
 //    Signal handlers
 ///////////////////////////////////////
 
 void sigchld_handler(int signum) {
     pid_t p;
+    int status;
     // wait for children that were stopped or continued
-    if ((p = waitpid(-1, 0, WUNTRACED | WCONTINUED)) != -1) {
+    if ((p = waitpid(-1, &status, WUNTRACED | WCONTINUED)) != -1) {
         // ignore this for listener
-        if (p == listener_process) {
+        if (!isWorker(p)) {
             signal(SIGCHLD, SIG_IGN);
             return;
         }
-        printf("child id = %d\n", p);
+        printf("child id = %d %d\n", p, getpid());
     } 
     // continue -> become unavailable
     if (isAvailable(p)) {
@@ -168,6 +180,7 @@ void sigint_handler(int signum) {
     printf("Kill everyone %d\n", getpid());
     int status = 0;
     // kill everyone
+    printf("------------- %d\n", pid_listener);
     if (kill(pid_listener, signum) == -1) {
         perror("Failed to kill listener\n");
         exit(1);
