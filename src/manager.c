@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
 
     int p[2], nbytes = 0, infile, arg = 0;
     pid_t pid_worker;
-    char inbuf[BUFFER_SIZE], folder[10], mypid[10];   
+    char inbuf[BUFFER_SIZE], folder[100], mypid[10];   
     char* filename = NULL, * fifo = NULL;
 
     // create workers queue
@@ -30,8 +30,6 @@ int main(int argc, char **argv) {
 
     memset(inbuf, 0, BUFFER_SIZE);
 
-    // stop when i receive ctrl+c
-    signal(SIGINT, sigint_handler);
 
     // get path and add slash if it isnt there
     for (int i = 0; i < argc; i++) {
@@ -87,7 +85,7 @@ int main(int argc, char **argv) {
             inbuf[strcspn(inbuf, "\n")] = 0;  
             // get filename from listener's message
             getFilename((char*)&inbuf, &filename); 
-            memset(folder, 0, 10);
+            memset(folder, 0, 100);
             strcpy(folder, "/tmp/"); 
 
             if (argc == 1) {
@@ -144,6 +142,8 @@ int main(int argc, char **argv) {
                     // child exits
                     exit(0); 
                 } else if (pid_worker > 0) {
+                    // stop when i receive ctrl+c
+                    signal(SIGINT, sigint_handler);
                     // get stopped child
                     signal(SIGCHLD, sigchld_handler);
                     printf("parent %d\n", getpid());

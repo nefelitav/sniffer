@@ -165,14 +165,13 @@ void sigchld_handler(int signum) {
 
 
 void sigint_handler(int signum) {
-    printf("KILL\n");
+    printf("Kill everyone %d\n", getpid());
     int status = 0;
     // kill everyone
     if (kill(pid_listener, signum) == -1) {
         perror("Failed to kill listener\n");
         exit(1);
     }
-
     if (waitpid(pid_listener, &status, WNOHANG) == -1) {
         if (!WIFSIGNALED(status)) {
             waitpid(pid_listener, &status, 0);
@@ -181,6 +180,8 @@ void sigint_handler(int signum) {
             exit(1);
         }
     }
+    printf("Kill listener %d\n", pid_listener);
+
     pidNode *curr = queue->first;
     while (curr != NULL) {
         if (kill(curr->data, SIGCONT) == -1) {
@@ -192,9 +193,14 @@ void sigint_handler(int signum) {
             exit(1);
         }
         if (waitpid(curr->data, &status, 0) == -1) {
-            perror("Error waiting\n");
-            exit(1);
+            if (!WIFSIGNALED(status)) {
+                waitpid(curr->data, &status, 0);
+            } else {
+                perror("Error waiting for worker\n");
+                exit(1);
+            }
         }
+        printf("Kill worker %d\n", curr->data);
         curr = curr->next;
     }
     // free resources and exit

@@ -27,7 +27,7 @@ void addUrl(urlList* list, char* newUrl) {
         return;
     } else {
         curr = malloc(sizeof(urlNode));
-        curr->url = malloc(sizeof(char)*(strlen(newUrl) + 1));
+        curr->url = malloc(sizeof(char)*(strlen(newUrl) + 1 + 10));
         strcpy(curr->url, newUrl);
         curr->occurences = 1;
         curr->next = list->head;
@@ -116,9 +116,11 @@ void findUrls() {
     off_t currentPos = lseek(readFile, (size_t)0, SEEK_CUR);
     off_t size = lseek(readFile, (size_t)0, SEEK_END);
     lseek(readFile, currentPos, SEEK_SET); 
-    char buffer[size], text[size];
+    char buffer[size], text[size*2];
     int len;
-    memset(text, 0, size);
+    memset(text, 0, 2*size);
+    memset(buffer, 0, size + 1);
+
 
     // get whole file in a string
     while((len = read(readFile, buffer, size)) != 0) {   
@@ -215,7 +217,9 @@ void findUrls() {
     // for every url -> write to .out file
     while (curr != NULL) {
         sprintf(occurence_str, "%d", curr->occurences);
-        strcat(strcat(curr->url, " "), strcat(occurence_str, "\n"));
+        strcat(occurence_str, "\n");
+        strcat(curr->url, " ");
+        strcat(curr->url, occurence_str);
         if (write(writeFile, curr->url, strlen(curr->url)) == -1) {
             perror("Failed to write to .out file\n");
             exit(1);
