@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     int p[2], nbytes = 0, infile, arg = 0;
     pid_t pid_worker;
     char inbuf[BUFFER_SIZE], folder[100], mypid[10];   
-    char* filename = NULL, * fifo = NULL;
+    char* filename = NULL, * fifo = NULL, *ptr = NULL, *token = NULL;
 
     // create workers queue
     createPidQueue(); 
@@ -60,6 +60,8 @@ int main(int argc, char **argv) {
         exit(1);
     // listener writes
     } else if (pid_listener == 0) {
+        printf("Listener %d\n", getpid());
+
         close(p[0]);
         // set pipe to stdout
         dup2(p[1], 1); 
@@ -80,83 +82,43 @@ int main(int argc, char **argv) {
                 perror("Failed to read from pipe");
                 exit(1);
             }
-            printf("%.*s", nbytes, inbuf);
-            // remove newline from filename
-            inbuf[strcspn(inbuf, "\n")] = 0;  
-            // get filename from listener's message
-            getFilename((char*)&inbuf, &filename); 
-            memset(folder, 0, 100);
-            strcpy(folder, "/tmp/"); 
+            // printf("%.*s", nbytes, inbuf);
 
-            if (argc == 1) {
-                memset(dir, 0, strlen("./") + 1);
-                strcpy(dir, "./");
-            } else {
-                memset(dir, 0, strlen(argv[arg]) + 1);
-                strcpy(dir, argv[arg]);
-                pathWithSlash(dir);
-            }
+            token = strtok_r(inbuf, "\n", &ptr);
+            while (token != NULL) {
+                    
+                // get filename from listener's message
+                getFilename(token, &filename); 
 
-            strcat(dir, filename);
+                memset(folder, 0, 100);
+                strcpy(folder, "/tmp/"); 
 
-            // there is some available worker
-            if (availableWorker() != -1) {
-                printf("available\n");
-                sprintf(mypid, "%d", availableWorker());
-                strcat(folder, mypid);
-                fifo = malloc(sizeof(char)*(strlen(folder) + 1));
-                memset(fifo, 0, strlen(folder) + 1);
-                strcpy(fifo, folder);
-
-                // send signal to child to wake up
-                if (kill(availableWorker(), SIGCONT) == -1) {
-                    perror("Failed to continue worker\n");
-                    exit(1);
+                if (argc == 1) {
+                    memset(dir, 0, strlen("./") + 1);
+                    strcpy(dir, "./");
+                } else {
+                    memset(dir, 0, strlen(argv[arg]) + 1);
+                    strcpy(dir, argv[arg]);
+                    pathWithSlash(dir);
                 }
-                if ((infile = open(fifo, O_WRONLY)) < 0) {
-                    perror("Failed to open named pipe\n");
-                    exit(1);
-                }
-                free(fifo);
-                // write file path in named pipe
-                if (write(infile, dir, strlen(dir) + 1) < 0) {
-                    perror("Failed to write in named pipe\n");
-                    exit(1);
-                }
-                if (close(infile) < 0) {  
-                    perror("Failed to close named pipe\n");
-                    exit(1);
-                }  
-            } else { 
-                // no available workers -> create one
-                if ((pid_worker = fork()) < 0) {
-                    perror("Worker fork failed\n");
-                    exit(1);
-                } else if (pid_worker == 0) {
-                    worker_process = getpid();
-                    printf("worker %d\n", worker_process);
-                    // receive signal from parent to restart if stopped
-                    signal(SIGCONT, SIG_DFL); 
-                    // do my job
-                    worker();
-                    // child exits
-                    exit(0); 
-                } else if (pid_worker > 0) {
-                    // stop when i receive ctrl+c
-                    signal(SIGINT, sigint_handler);
-                    // get stopped child
-                    signal(SIGCHLD, sigchld_handler);
-                    printf("parent %d\n", getpid());
-                    // push worker to the queue
-                    push(pid_worker);
-                    sprintf(mypid, "%d", pid_worker);
+
+                strcat(dir, filename);
+
+
+                // there is some available worker
+
+                if (availableWorker() != -1) {
+                    printf("There is an available worker\n");
+                    sprintf(mypid, "%d", availableWorker());
                     strcat(folder, mypid);
                     fifo = malloc(sizeof(char)*(strlen(folder) + 1));
                     memset(fifo, 0, strlen(folder) + 1);
                     strcpy(fifo, folder);
-                    // create named pipe
-                    if (mkfifo(fifo, PERMS) < 0) {
-                        perror("Can't create fifo\n");
+
+                    // send signal to child to wake up
+                    if (kill(availableWorker(), SIGCONT) == -1) {
+                        perror("Failed to continue worker\n");
+                        exit(1);
                     }
                     if ((infile = open(fifo, O_WRONLY)) < 0) {
                         perror("Failed to open named pipe\n");
@@ -172,8 +134,61 @@ int main(int argc, char **argv) {
                         perror("Failed to close named pipe\n");
                         exit(1);
                     }  
+                } else { 
+                    // no available workers -> create one
+                    if ((pid_worker = fork()) < 0) {
+                        perror("Worker fork failed\n");
+                        exit(1);
+                    } else if (pid_worker == 0) {
+                        worker_process = getpid();
+                        printf("Worker %d\n", worker_process);
+                        // receive signal from parent to restart if stopped
+                        signal(SIGCONT, SIG_DFL); 
+                        // do my job
+                        worker();
+
+                        // child exits
+                        exit(0); 
+                    } else if (pid_worker > 0) {
+
+                        // stop when i receive ctrl+c
+                        signal(SIGINT, sigint_handler);
+                        // get stopped child
+                        signal(SIGCHLD, sigchld_handler);
+                        printf("Parent %d\n", getpid());
+                        // push worker to the queue
+                        push(pid_worker);
+                        sprintf(mypid, "%d", pid_worker);
+                        strcat(folder, mypid);
+                        fifo = malloc(sizeof(char)*(strlen(folder) + 1));
+                        memset(fifo, 0, strlen(folder) + 1);
+                        strcpy(fifo, folder);
+                        // create named pipe
+                        if (mkfifo(fifo, PERMS) < 0) {
+                            perror("Can't create fifo\n");
+                        }
+                        if ((infile = open(fifo, O_WRONLY)) < 0) {
+                            perror("Failed to open named pipe\n");
+                            exit(1);
+                        }
+                        free(fifo);
+
+                        // write file path in named pipe
+                        if (write(infile, dir, strlen(dir) + 1) < 0) {
+                            perror("Failed to write in named pipe\n");
+                            exit(1);
+                        }
+                        if (close(infile) < 0) {  
+                            perror("Failed to close named pipe\n");
+                            exit(1);
+                        }  
+                    }
                 }
+
+                token = strtok_r(NULL, "\n", &ptr);
             }
+
+
         }
     }
 }

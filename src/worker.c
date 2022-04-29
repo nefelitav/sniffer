@@ -87,7 +87,7 @@ void findUrls() {
     strcpy(folder, "/tmp/");
     sprintf(mypid, "%d", getpid());
     strcpy(fifo, strcat(folder, mypid));
-    sleep(0.5);
+    // sleep(0.5);
     // read filename from pipe
     if ((readPipe = open(fifo, O_RDONLY)) == -1) {
         perror("Failed to open named pipe\n");
@@ -104,7 +104,7 @@ void findUrls() {
     free(fifo);
     
     filename[strcspn(filename, "\n")] = 0;
-    printf("Filename = -%s-\n", filename); 
+    printf("Filename = %s\n", filename); 
 
     // find urls in that file
     if ((readFile = open(filename, O_RDONLY)) == -1) {
@@ -138,7 +138,6 @@ void findUrls() {
     } 
 
     text[strcspn(text, "\n")] = 0;  
-    printf("the string is = %s.\n", text); 
     char * urlStart = text;
     char * url;
     regex_t regex;
@@ -157,7 +156,6 @@ void findUrls() {
         }
         // execute regex
         res = regexec(&regex, url, 0, NULL, 0);
-        printf("res %d\n", res);
         if (!res) {
             // match -> add url to list
             char* wwwPtr = strstr(url, "www.");
@@ -184,9 +182,6 @@ void findUrls() {
         regfree(&regex);
     } 
 
-
-    printList(list);
-
     char* ptr = filename;
     char * output;
     char * temp;
@@ -199,11 +194,10 @@ void findUrls() {
     char * newFilename = strcat(output, ".out");
 
 
-    printf("-%s-\n", newFilename);
     memset(folder, 0, 10);
     strcpy(folder, "/tmp/");
     char * newFile = strcat(folder, newFilename);
-    printf("-%s-\n", newFile);
+    printf("Writing in %s\n", newFile);
 
 
     // create .out file
@@ -224,7 +218,6 @@ void findUrls() {
             perror("Failed to write to .out file\n");
             exit(1);
         }
-        printf("-%s-\n", curr->url);
         curr = curr->next;
     }
 
@@ -240,12 +233,12 @@ void findUrls() {
 void worker() {
     while(1) {
         findUrls();
-        printf("stopped\n");
+        printf("Worker %d stopped\n", getpid());
         // send signal to myself to stop
         if (raise(SIGSTOP) == -1) {
             perror("Raise failed\n");
             exit(1);
         }
-        printf("restarted\n");
+        printf("Worker %d restarted\n", getpid());
     }
 }
