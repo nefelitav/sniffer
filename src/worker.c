@@ -68,6 +68,7 @@ void deleteList(urlList* list) {
     urlNode *next = NULL;
     while (curr != NULL) {
         next = curr->next;
+        free(curr->url);
         free(curr);
         curr = next;
     }
@@ -87,7 +88,7 @@ void findUrls() {
     strcpy(folder, "/tmp/");
     sprintf(mypid, "%d", getpid());
     strcpy(fifo, strcat(folder, mypid));
-    // sleep(0.5);
+    sleep(0.5);
     // read filename from pipe
     if ((readPipe = open(fifo, O_RDONLY)) == -1) {
         perror("Failed to open named pipe\n");

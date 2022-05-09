@@ -144,6 +144,8 @@ int main(int argc, char **argv) {
                         printf("Worker %d\n", worker_process);
                         // receive signal from parent to restart if stopped
                         signal(SIGCONT, SIG_DFL); 
+                        free(dir);
+                        deletePidQueue();
                         // do my job
                         worker();
 

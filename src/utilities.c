@@ -183,29 +183,37 @@ void sigint_handler(int signum) {
     printf("Kill everyone %d\n", getpid());
     int status = 0;
     // kill everyone
-    if (kill(pid_listener, signum) == -1) {
-        perror("Failed to kill listener\n");
-        exit(1);
-    }
-    if (waitpid(pid_listener, &status, WNOHANG) == -1) {
-        if (!WIFSIGNALED(status)) {
-            waitpid(pid_listener, &status, 0);
-        } else {
-            perror("Error waiting listener\n");
-            exit(1);
-        }
-    }
+    // if (kill(pid_listener, signum) == -1) {
+    //     perror("Failed to kill listener\n");
+    //     free(dir);
+    //     deletePidQueue();
+    //     exit(1);
+    // }
+    // if (waitpid(pid_listener, &status, WNOHANG) == -1) {
+    //     if (!WIFSIGNALED(status)) {
+    //         waitpid(pid_listener, &status, 0);
+    //     } else {
+    //         perror("Error waiting listener\n");
+    //         free(dir);
+    //         deletePidQueue();
+    //         exit(1);
+    //     }
+    // }
     printf("Kill listener %d\n", pid_listener);
 
     pidNode *curr = queue->first;
     while (curr != NULL) {
-
+        printf("Kill worker %d\n", curr->data);
         if (kill(curr->data, SIGCONT) == -1) {
             perror("Failed to continue worker\n");
+            free(dir);
+            deletePidQueue();
             exit(1);
         }
         if (kill(curr->data, signum) == -1) {
             perror("Failed to kill worker\n");
+            free(dir);
+            deletePidQueue();
             exit(1);
         }
         if (waitpid(curr->data, &status, WNOHANG) == -1) {
@@ -213,10 +221,11 @@ void sigint_handler(int signum) {
                 waitpid(curr->data, &status, 0);
             } else {
                 perror("Error waiting for worker\n");
+                free(dir);
+                deletePidQueue();
                 exit(1);
             }
         }
-        printf("Kill worker %d\n", curr->data);
         curr = curr->next;
     }
     // free resources and exit
