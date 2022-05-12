@@ -138,7 +138,6 @@ void findUrls() {
         exit(1);
     } 
 
-    text[strcspn(text, "\n")] = 0;  
     char * urlStart = text;
     char * url;
     regex_t regex;
@@ -151,7 +150,7 @@ void findUrls() {
         url = strtok_r(urlStart, " ", &urlStart);
 
         // check if it is a valid url
-        if (regcomp(&regex, "http://(www.)?[a-zA-Z0-9@:%._\\+~#?&//=]{2,256}\\.[a-z]{2,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", REG_EXTENDED)) {
+        if (regcomp(&regex, "http://(www.)?[a-zA-Z0-9@:%._\\+~#?&//=-]{1,256}\\.[a-z]{1,6}\\b([-a-zA-Z0-9@:%._\\+~#?&//=]*)", REG_EXTENDED)) {
             perror("Could not compile regex\n");
             exit(1);
         }
