@@ -183,22 +183,22 @@ void sigint_handler(int signum) {
     printf("Kill everyone %d\n", getpid());
     int status = 0;
     // kill everyone
-    // if (kill(pid_listener, signum) == -1) {
-    //     perror("Failed to kill listener\n");
-    //     free(dir);
-    //     deletePidQueue();
-    //     exit(1);
-    // }
-    // if (waitpid(pid_listener, &status, WNOHANG) == -1) {
-    //     if (!WIFSIGNALED(status)) {
-    //         waitpid(pid_listener, &status, 0);
-    //     } else {
-    //         perror("Error waiting listener\n");
-    //         free(dir);
-    //         deletePidQueue();
-    //         exit(1);
-    //     }
-    // }
+    if (kill(pid_listener, signum) == -1) {
+        perror("Failed to kill listener\n");
+        free(dir);
+        deletePidQueue();
+        exit(1);
+    }
+    if (waitpid(pid_listener, &status, WNOHANG) == -1) {
+        if (!WIFSIGNALED(status)) {
+            waitpid(pid_listener, &status, 0);
+        } else {
+            perror("Error waiting listener\n");
+            free(dir);
+            deletePidQueue();
+            exit(1);
+        }
+    }
     printf("Kill listener %d\n", pid_listener);
 
     pidNode *curr = queue->first;
