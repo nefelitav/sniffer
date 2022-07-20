@@ -10,9 +10,9 @@ This program consists of 3 entities:
 
 File structure:
 
-- manager.c : contains the manager and listener functionality, as well as the main structure of the whole program.
-- worker.c : contains the worker functionality, as well as the urlsList struct methods, which are used by workers.
-- utilities.c : contains some useful functions (e.g for path processing), signal handlers and the pidsQueue struct methods.
+- `manager.c` : contains the manager and listener functionality, as well as the main structure of the whole program.
+- `worker.c` : contains the worker functionality, as well as the urlsList struct methods, which are used by workers.
+- `utilities.c` : contains some useful functions (e.g for path processing), signal handlers and the pidsQueue struct methods.
 
 Finally, I created a bash script to search for the occurence of some given TLD in all the .out files that were created in the /tmp directory.
 
