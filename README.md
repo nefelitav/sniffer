@@ -1,5 +1,7 @@
 # Sniffer
 
+[![C CI Actions Status](https://github.com/nefelitav/sniffer/workflows/C%20CI/badge.svg)](https://github.com/nefelitav/sniffer/actions)
+
 This program consists of 3 entities:
 
 - Manager : the main process that communicates with the listener through a pipe and with the workers through named pipes. All these processes are created using fork and are terminated pressing CTRL+C (SIGINT) by the parent/manager. For every new file that is created in the folder that the listener monitors, a new worker is created, if there is no one available, and this worker is responsible of processing the specific file. As far as the named pipes are concerned, they are stored in the /tmp directory and each is named after the worker's process id. The manager writes the name of the file that should be processed inside the named pipe. Also, some other functionality of the manager is that it creates a queue containing the workers' process ids and their availability, which it handles with singals. That means that when the manager receives a SIGCHLD signal, it finds the stopped worker and sets it to available and also when the manager sends a SIGCONT signal to the worker, in order to continue with some new file, it sets it to unavailable.
